@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>MERCEARIA CHIQUEITOR PRO</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;700;900&family=Courier+Prime&display=swap');
+        :root { --royal: #1a2a6c; --emerald: #00b09b; --ruby: #cb2d3e; --diamond: #8e44ad; --gold: #f39c12; --cor-tema: var(--royal); }
+        body { font-family: 'Poppins', sans-serif; margin: 0; padding: 10px; background: #111; color: white; overflow-x: hidden; }
+        
+        .container { max-width: 450px; margin: auto; padding: 20px; border-radius: 30px; min-height: 90vh; background: var(--cor-tema); transition: 0.6s; box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
+        .header-title { text-align: center; font-weight: 900; font-size: 22px; margin-bottom: 20px; text-transform: uppercase; letter-spacing: 1px; }
+        .header-title span { font-weight: 300; opacity: 0.8; }
+
+        .tabs { display: flex; gap: 5px; background: rgba(0,0,0,0.2); padding: 6px; border-radius: 18px; margin-bottom: 25px; overflow-x: auto; scrollbar-width: none; }
+        .tabs::-webkit-scrollbar { display: none; }
+        .tab { flex: 1; padding: 15px 10px; text-align: center; border-radius: 12px; font-size: 11px; font-weight: 800; cursor: pointer; color: rgba(255,255,255,0.6); white-space: nowrap; min-width: 90px; }
+        .tab.active { background: white; color: var(--cor-tema); }
+        
+        body.aba-0 { --cor-tema: var(--royal); } body.aba-1 { --cor-tema: var(--emerald); } 
+        body.aba-2 { --cor-tema: var(--ruby); } body.aba-3 { --cor-tema: var(--diamond); } body.aba-4 { --cor-tema: var(--gold); }
+
+        input, select { width: 100%; padding: 16px; margin: 8px 0; border: none; border-radius: 15px; font-size: 16px; background: white; color: #333; font-weight: 600; box-sizing: border-box; }
+        .btn { width: 100%; padding: 18px; border: none; border-radius: 15px; font-weight: 900; color: var(--cor-tema); cursor: pointer; text-transform: uppercase; margin-top: 10px; background: white; font-size: 15px; }
+        .card-item { background: white; padding: 15px; border-radius: 15px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; color: #333; }
+        
+        .content { display: none; } 
+        .content.active { display: block; animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+        #telaRecibo { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 1000; padding: 10px; overflow-y: auto; }
+        #p_pdf { background: #fff; color: #000; padding: 15px; width: 280px; margin: auto; font-family: 'Courier Prime', monospace; box-sizing: border-box; }
+        .cupom-header { text-align: center; border-bottom: 1px dashed #000; padding-bottom: 10px; margin-bottom: 10px; font-size: 10px; }
+        .tabela-itens { width: 100%; font-size: 11px; margin-bottom: 10px; border-collapse: collapse; }
+        
+        /* Estilo da Dica de Instalação */
+        #dicaApp { background: #fff; color: #333; padding: 15px; border-radius: 15px; margin-bottom: 20px; font-size: 12px; display: none; border-left: 5px solid var(--gold); }
+    </style>
+</head>
+<body class="aba-0">
+
+<div class="container">
+    <div class="header-title">MERCEARIA <span>CHIQUEITOR</span></div>
+    
+    <div id="dicaApp">
+        <b>💡 Dica Pro:</b> Clique nos 3 pontinhos do Chrome e selecione <b>"Adicionar à tela de início"</b> para usar como um App!
+        <button onclick="this.parentElement.style.display='none'" style="float:right; border:none; background:none; font-weight:bold;">OK</button>
+    </div>
+
+    <div class="tabs">
+        <div id="btn-0" class="tab active" onclick="tab(0)">ESTOQUE</div>
+        <div id="btn-1" class="tab" onclick="tab(1)">VENDA</div>
+        <div id="btn-2" class="tab" onclick="tab(2)">FIADO</div>
+        <div id="btn-4" class="tab" onclick="tab(4)">HISTÓRICO</div>
+        <div id="btn-3" class="tab" onclick="tab(3)">LUCRO</div>
+    </div>
+
+    <div id="t0" class="content active">
+        <input type="text" id="n" placeholder="Nome do Produto">
+        <div style="display:flex; gap:10px">
+            <input type="text" id="custo" inputmode="decimal" placeholder="Custo 0,00" oninput="mMoeda(this)">
+            <input type="text" id="venda" inputmode="decimal" placeholder="Venda 0,00" oninput="mMoeda(this)">
+        </div>
+        <input type="number" id="qtd" inputmode="numeric" placeholder="Qtd Inicial">
+        <button class="btn" onclick="add()">CADASTRAR PRODUTO</button>
+        <div id="listaE" style="margin-top:20px;"></div>
+    </div>
+
+    <div id="t1" class="content">
+        <select id="selP" onchange="calc()"></select>
+        <div style="display:flex; gap:10px">
+            <input type="number" id="vQ" inputmode="numeric" placeholder="Qtd" oninput="calc()">
+            <input type="text" id="vD" inputmode="decimal" placeholder="Desc R$" oninput="mMoeda(this); calc()">
+        </div>
+        <div id="vTotal" style="font-size:45px; font-weight: 900; text-align:center; margin:10px 0;">R$ 0,00</div>
+        <select id="vMetodo" onchange="boxCli()">
+            <option value="Dinheiro">💵 Dinheiro</option>
+            <option value="Pix">💎 Pix</option>
+            <option value="Cartão de Crédito">💳 Cartão de Crédito</option>
+            <option value="Cartão de Débito">🏦 Cartão de Débito</option>
+            <option value="Fiado">📝 Fiado</option>
+        </select>
+        <div id="cliBox" style="display:none;"><input type="text" id="vCli" placeholder="Nome do Cliente"></div>
+        <button class="btn" onclick="vender()">FINALIZAR VENDA</button>
+    </div>
+
+    <div id="t2" class="content">
+        <div id="resumoFiado" style="text-align:center; margin-bottom:20px; font-size:18px; font-weight:bold;"></div>
+        <div id="listaF"></div>
+    </div>
+
+    <div id="t4" class="content">
+        <h3 style="text-align:center; font-size:14px; opacity:0.8;">VENDAS RECENTES</h3>
+        <div id="listaH"></div>
+    </div>
+
+    <div id="t3" class="content">
+        <div style="text-align:center; padding:20px;">
+            <small>LUCRO TOTAL ACUMULADO</small>
+            <div id="lucroTotal" style="font-size:50px; font-weight:900;">R$ 0,00</div>
+        </div>
+        <button class="btn" style="background:#333; color:white; margin-top:50px;" onclick="limpar()">ZERAR SISTEMA</button>
+    </div>
+</div>
+
+<div id="telaRecibo">
+    <div id="p_pdf">
+        <div class="cupom-header">
+            <b style="font-size:14px;">MERCEARIA CHIQUEITOR</b><br>
+            <small>Residencial Eng. Maurílio de Araújo Lima</small>
+            <small>Qd A casa 04, Pedra Mole, Teresina</small>
+            <small>(86) 99422-5201</small>
+            <br><small id="dataCupom"></small>
+        </div>
+        <table class="tabela-itens">
+            <thead><tr style="border-bottom:1px solid #000; text-align:left;"><th>Item</th><th>Qt</th><th>Un</th><th>Tot</th></tr></thead>
+            <tbody id="itensCupom"></tbody>
+        </table>
+        <div style="text-align:right; font-weight:900;" id="totalCupom"></div>
+        <div style="font-size:9px; margin-top:5px;">PAGAMENTO: <span id="pagtoCupom"></span></div>
+    </div>
+    <div style="max-width:320px; margin:auto; display:flex; flex-direction:column; gap:8px; padding-top:20px;">
+        <button class="btn" style="background:#e74c3c; color:white;" onclick="gerarPDF()">PDF</button>
+        <button class="btn" style="background:#25d366; color:white;" onclick="zap()">WHATSAPP</button>
+        <button class="btn" style="background:#333; color:white" onclick="location.reload()">VOLTAR</button>
+    </div>
+</div>
+
+<script>
+    let dVenda = null;
+    const CHAVE_PIX = "huegoclash13@gmail.com";
+
+    // --- SEGURANÇA CONTRA SAÍDA ACIDENTAL ---
+    window.addEventListener('beforeunload', function (e) {
+        e.preventDefault();
+        e.returnValue = 'Você tem certeza que deseja sair? Os dados não salvos podem ser perdidos.';
+    });
+
+    function getIcon(n) {
+        n = n.toLowerCase();
+        if(n.includes("coca") || n.includes("refri") || n.includes("suco")) return "🥤";
+        if(n.includes("cerveja") || n.includes("skol") || n.includes("brahma")) return "🍺";
+        if(n.includes("pao") || n.includes("pão")) return "🥖";
+        if(n.includes("ovo")) return "🥚";
+        return "📦";
+    }
+
+    function tab(n) {
+        document.body.className = 'aba-' + n;
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.content').forEach(c => c.classList.remove('active'));
+        document.getElementById('btn-' + n).classList.add('active');
+        document.getElementById('t' + n).classList.add('active');
+        if(n==0) renderE(); if(n==1) fillS(); if(n==2) renderF(); if(n==3) renderL(); if(n==4) renderH();
+    }
+
+    function mMoeda(i) {
+        let v = i.value.replace(/\D/g,'');
+        v = (v/100).toFixed(2).replace(".", ",");
+        i.value = v == "0,00" ? "" : v;
+    }
+
+    function add() {
+        let n = document.getElementById('n').value, v = document.getElementById('venda').value;
+        if(!n || !v) return;
+        let p = JSON.parse(localStorage.getItem('p')||'[]');
+        p.push({ n: n.toUpperCase(), v: parseFloat(v.replace(',','.')), c: parseFloat((document.getElementById('custo').value||'0').replace(',','.')), q: parseInt(document.getElementById('qtd').value)||0, icon: getIcon(n) });
+        localStorage.setItem('p', JSON.stringify(p));
+        document.getElementById('n').value = ""; document.getElementById('venda').value = ""; document.getElementById('custo').value = ""; document.getElementById('qtd').value = "";
+        renderE();
+    }
+
+    function renderE() {
+        let p = JSON.parse(localStorage.getItem('p')||'[]'), h = "";
+        p.forEach((it, i) => h += `<div class="card-item"><div>${it.icon} <b>${it.n}</b><br><small>R$ ${it.v.toFixed(2)} | Qtd: ${it.q}</small></div><button onclick="delP(${i})" style="color:red; background:none; border:none; font-size:20px;">✕</button></div>`);
+        document.getElementById('listaE').innerHTML = h;
+    }
+
+    function fillS() {
+        let p = JSON.parse(localStorage.getItem('p')||'[]'), h = "<option value=''>ESCOLHA O PRODUTO...</option>";
+        p.forEach((it, i) => h += `<option value="${i}">${it.icon} ${it.n} (${it.q})</option>`);
+        document.getElementById('selP').innerHTML = h;
+    }
+
+    function calc() {
+        let p = JSON.parse(localStorage.getItem('p')||'[]'), i = document.getElementById('selP').value;
+        if(i !== "") {
+            let q = document.getElementById('vQ').value || 0, d = parseFloat(document.getElementById('vD').value.replace(',','.')) || 0;
+            let tot = (p[i].v * q) - d;
+            document.getElementById('vTotal').innerText = "R$ " + (tot < 0 ? 0 : tot).toFixed(2).replace('.',',');
+        }
+    }
+
+    function boxCli() { document.getElementById('cliBox').style.display = document.getElementById('vMetodo').value == 'Fiado' ? 'block' : 'none'; }
+
+    function vender() {
+        let p = JSON.parse(localStorage.getItem('p')||'[]'), i = document.getElementById('selP').value, q = parseInt(document.getElementById('vQ').value);
+        if(i==="" || !q) return alert("Erro!");
+        let d = parseFloat(document.getElementById('vD').value.replace(',','.')) || 0;
+        let t = (p[i].v * q) - d;
+        dVenda = { n: p[i].n, q: q, vU: p[i].v, tot: t, met: document.getElementById('vMetodo').value, cli: document.getElementById('vCli').value||"CLIENTE", luc: t - (p[i].c*q), id: i, icon: p[i].icon, data: new Date().toLocaleString() };
+        document.getElementById('dataCupom').innerText = dVenda.data;
+        document.getElementById('itensCupom').innerHTML = `<tr><td>${dVenda.icon} ${dVenda.n}</td><td>${dVenda.q}</td><td>${dVenda.vU.toFixed(2)}</td><td>${dVenda.tot.toFixed(2)}</td></tr>`;
+        document.getElementById('totalCupom').innerText = "TOTAL: R$ " + dVenda.tot.toFixed(2);
+        document.getElementById('pagtoCupom').innerText = dVenda.met + (dVenda.met == "Fiado" ? " ("+dVenda.cli+")" : "");
+        document.getElementById('telaRecibo').style.display = 'block';
+    }
+
+    function concluir() {
+        if(!dVenda || dVenda.salvo) return;
+        let p = JSON.parse(localStorage.getItem('p')||'[]');
+        p[dVenda.id].q -= dVenda.q;
+        localStorage.setItem('p', JSON.stringify(p));
+        let v = JSON.parse(localStorage.getItem('v')||'[]');
+        v.unshift(dVenda);
+        localStorage.setItem('v', JSON.stringify(v));
+        if(dVenda.met == "Fiado") {
+            let f = JSON.parse(localStorage.getItem('f')||'[]');
+            f.push({c: dVenda.cli.toUpperCase(), t: dVenda.tot});
+            localStorage.setItem('f', JSON.stringify(f));
+        }
+        dVenda.salvo = true;
+    }
+
+    function renderH() {
+        let v = JSON.parse(localStorage.getItem('v')||'[]'), h = "";
+        v.forEach((it, i) => h += `<div class="card-item" style="font-size:11px;"><div>${it.icon} <b>${it.n}</b><br><small>${it.data}</small></div><div style="text-align:right; display:flex; align-items:center; gap:10px;"><div><b>R$ ${it.tot.toFixed(2)}</b><br><small>${it.met}</small></div><button onclick="excluirVenda(${i})" style="color:red; background:#ffebee; border:none; border-radius:50%; width:30px; height:30px; font-weight:bold;">✕</button></div></div>`);
+        document.getElementById('listaH').innerHTML = h || "<center>Sem histórico</center>";
+    }
+
+    function excluirVenda(idx) {
+        if(!confirm("Cancelar venda?")) return;
+        let v = JSON.parse(localStorage.getItem('v')||'[]');
+        let p = JSON.parse(localStorage.getItem('p')||'[]');
+        let vendaRemovida = v[idx];
+        let prodNoEstoque = p.find(item => item.n === vendaRemovida.n);
+        if(prodNoEstoque) prodNoEstoque.q += vendaRemovida.q;
+        v.splice(idx, 1);
+        localStorage.setItem('v', JSON.stringify(v));
+        localStorage.setItem('p', JSON.stringify(p));
+        renderH();
+    }
+
+    function zap() { concluir(); window.open("https://api.whatsapp.com/send?text=*MERCEARIA CHIQUEITOR*%0A*PRODUTO:* "+dVenda.n+"%0A*TOTAL: R$ "+dVenda.tot.toFixed(2)+"*"); }
+    function gerarPDF() { concluir(); html2pdf().from(document.getElementById('p_pdf')).set({ margin: 5, filename: 'recibo.pdf', jsPDF: { format: 'a6' } }).save(); }
+    
+    function renderF() {
+        let f = JSON.parse(localStorage.getItem('f')||'[]'), s = 0, h = "";
+        f.forEach((it, i) => { s += it.t; h += `<div class="card-item"><div><b>👤 ${it.c}</b><br><small>Deve: R$ ${it.t.toFixed(2)}</small></div><button onclick="paga(${i})" style="background:#2ecc71; color:white; border:none; padding:10px; border-radius:10px; font-weight:bold;">Pagar</button></div>`; });
+        document.getElementById('resumoFiado').innerText = "A RECEBER: R$ " + s.toFixed(2);
+        document.getElementById('listaF').innerHTML = h;
+    }
+
+    function paga(idx) {
+        let f = JSON.parse(localStorage.getItem('f')||'[]');
+        let valor = prompt("Valor pago:");
+        if(valor) {
+            f[idx].t -= parseFloat(valor.replace(',','.'));
+            if(f[idx].t <= 0) f.splice(idx,1);
+            localStorage.setItem('f', JSON.stringify(f));
+            renderF();
+        }
+    }
+
+    function renderL() {
+        let v = JSON.parse(localStorage.getItem('v')||'[]');
+        document.getElementById('lucroTotal').innerText = "R$ " + v.reduce((a,b) => a+b.luc, 0).toFixed(2).replace('.',',');
+    }
+
+    function delP(i) { if(confirm("Apagar produto?")) { let p = JSON.parse(localStorage.getItem('p')||'[]'); p.splice(i,1); localStorage.setItem('p', JSON.stringify(p)); renderE(); } }
+    function limpar() { if(confirm("LIMPAR TUDO?")) { localStorage.clear(); location.reload(); } }
+    
+    window.onload = () => {
+        renderE();
+        tab(0);
+        // Mostra a dica de instalação apenas se não estiver no modo "standalone" (app)
+        if (!window.matchMedia('(display-mode: standalone)').matches) {
+            document.getElementById('dicaApp').style.display = 'block';
+        }
+    };
+</script>
+</body>
+</html>
